@@ -1,5 +1,6 @@
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
 
 // Fix default marker icon
 delete L.Icon.Default.prototype._getIconUrl;
