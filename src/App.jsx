@@ -6,8 +6,9 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { io } from 'socket.io-client';
 import './leafletFix';
+import 'leaflet/dist/leaflet.css';
 
-// Icons
+
 const ownIcon = new L.Icon({
   iconUrl: 'https://cdn-icons-png.flaticon.com/512/447/447031.png',
   iconSize: [30, 30],
@@ -20,11 +21,13 @@ const relayIcon = new L.Icon({
   iconAnchor: [14, 28]
 });
 
-// Recenter map
 function RecenterMap({ lat, lon }) {
   const map = useMap();
   useEffect(() => {
-    if (lat && lon) map.setView([lat, lon], 15, { animate: true });
+    if (lat && lon) {
+      console.log("[RecenterMap] Moving map to:", lat, lon);
+      map.setView([lat, lon], 15, { animate: true });
+    }
   }, [lat, lon, map]);
   return null;
 }
@@ -36,32 +39,46 @@ export default function App() {
   const [timer, setTimer] = useState(30);
   const intervalRef = useRef(null);
 
+  console.log("[App] Render start");
+
   const pos = useGeolocation(scanning, 30000);
   const { adverts } = useBluetoothScanner(scanning);
 
-  // Timer countdown
+  // Timer
   useEffect(() => {
+    console.log("[Timer] Started countdown");
     intervalRef.current = setInterval(() => {
       setTimer(t => (t > 0 ? t - 1 : 30));
     }, 1000);
     return () => clearInterval(intervalRef.current);
   }, []);
 
-  // Socket.IO real-time updates
+  // Socket.IO
   useEffect(() => {
-    const socket = io('https://srv-d2uv17nfte5s73bji380'); // <-- your backend URL
-    socket.on('connect', () => console.log('Socket connected:', socket.id));
+    console.log("[Socket] Connecting to backend…");
+    const socket = io('https://ble-backend-trim.onrender.com', {
+  transports: ['websocket'], // force WS
+  withCredentials: true
+});
+
+    socket.on('connect', () => console.log("[Socket] Connected:", socket.id));
+    socket.on('disconnect', () => console.log("[Socket] Disconnected"));
     socket.on('event:new', (ev) => {
+      console.log("[Socket] New event received:", ev);
       setDevices(d => ({ ...d, [ev.deviceId]: ev }));
-      setLastUpdate(new Date()); // popup for any update
+      setLastUpdate(new Date());
     });
     return () => socket.disconnect();
   }, []);
 
-  // Upload own position
+  // Own position
   useEffect(() => {
     async function handleOwnPos() {
-      if (!pos) return;
+      if (!pos) {
+        console.log("[Geo] No position yet");
+        return;
+      }
+      console.log("[Geo] Got position:", pos);
       const ownEvent = {
         deviceId: 'web-' + (navigator.userAgent || '').slice(0, 30),
         ts: pos.ts,
@@ -72,7 +89,9 @@ export default function App() {
         uploaderDeviceId: null,
         relayed: false
       };
+      console.log("[Upload] Sending ownEvent:", ownEvent);
       const uploaded = await uploadEvent(ownEvent);
+      console.log("[Upload] Upload result:", uploaded);
       setDevices(d => ({ ...d, [ownEvent.deviceId]: ownEvent }));
       if (uploaded) setLastUpdate(new Date());
       await uploadBatchIfAny();
@@ -81,9 +100,14 @@ export default function App() {
     handleOwnPos();
   }, [pos]);
 
-  // Handle adverts (relays)
+  // Relayed adverts
   useEffect(() => {
     async function handleAdverts() {
+      if (!adverts || adverts.length === 0) {
+        console.log("[BLE] No adverts found");
+        return;
+      }
+      console.log("[BLE] Got adverts:", adverts);
       for (const a of adverts) {
         const ev = {
           deviceId: a.id || `adv-${a.sourceDeviceId}`,
@@ -95,6 +119,7 @@ export default function App() {
           uploaderDeviceId: 'web-relay',
           relayed: true
         };
+        console.log("[Upload] Relayed event:", ev);
         await uploadEvent(ev);
         setDevices(d => ({ ...d, [ev.deviceId]: ev }));
       }
@@ -104,13 +129,17 @@ export default function App() {
   }, [adverts]);
 
   const ownDevice = Object.values(devices).find(d => !d.relayed);
+  console.log("[Devices] Current state:", devices);
 
   return (
     <div style={{ display: 'flex', height: '100vh', position: 'relative' }}>
       {/* Sidebar */}
       <div style={{ width: 320, padding: 12, borderRight: '1px solid #ddd', overflowY: 'auto' }}>
         <h3>BLE PWA Relay</h3>
-        <button onClick={() => setScanning(s => !s)}>
+        <button onClick={() => {
+          console.log("[UI] Toggle scanning:", !scanning);
+          setScanning(s => !s);
+        }}>
           {scanning ? 'Stop' : 'Start'} scanning
         </button>
         <p>Geo: {pos ? `${pos.lat.toFixed(5)}, ${pos.lon.toFixed(5)}` : 'no fix yet'}</p>
@@ -159,10 +188,8 @@ export default function App() {
               </Marker>
             ))}
         </MapContainer>
-      </div>{console.log('App render')
-      }
+      </div>
 
-      {/* Backend update popup */}
       {lastUpdate && (
         <div style={{
           position: 'absolute', bottom: 20, left: '50%',
