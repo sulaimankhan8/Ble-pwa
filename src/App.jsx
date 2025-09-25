@@ -43,6 +43,28 @@ export default function App() {
   const pos = useGeolocation(scanning, 30000);
   const { adverts } = useBluetoothScanner(scanning);
 
+  // PWA install prompt
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [installable, setInstallable] = useState(false);
+
+  useEffect(() => {
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setInstallable(true);
+    });
+    return () => window.removeEventListener("beforeinstallprompt", () => {});
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log("PWA Install:", outcome);
+    setDeferredPrompt(null);
+    setInstallable(false);
+  };
+
   useEffect(() => setScanning(true), []);
 
   useEffect(() => {
@@ -131,12 +153,16 @@ export default function App() {
             </div>
           </div>
         </div>
-       
+        {installable && (
+          <button className="download-btn" onClick={handleInstallClick}>
+            📲 Install App
+          </button>
+        )}
       </header>
 
-      <div style={{ display: 'flex', height: '100%', width: '100%' }}>
+      <div className="main-content">
         {/* Sidebar */}
-        <div style={{ width: 320, padding: 12, borderRight: '1px solid #ddd', overflowY: 'auto' }}>
+        <div className="sidebar">
           <button onClick={() => setScanning(s => !s)}>{scanning ? 'Stop' : 'Start'} scanning</button>
           <p>Geo: {pos ? `${pos.lat.toFixed(5)}, ${pos.lon.toFixed(5)}` : 'no fix yet'}</p>
           <p>Next upload in: {timer}s</p>
@@ -151,7 +177,7 @@ export default function App() {
         </div>
 
         {/* Map */}
-        <div style={{ flex: 1, position: 'relative' }}>
+        <div className="map-container">
           {ownDevice ? (
             <MapContainer center={[ownDevice.lat, ownDevice.lon]} zoom={15} style={{ flex: 1, height: '100%' }}>
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -178,9 +204,7 @@ export default function App() {
                 ))}
             </MapContainer>
           ) : (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              Loading map...
-            </div>
+            <div className="map-loading">Loading map...</div>
           )}
         </div>
       </div>
@@ -209,23 +233,25 @@ export default function App() {
           align-items: center;
           box-shadow: 0 2px 10px rgba(0,0,0,0.2);
           z-index: 1000;
+          flex-wrap: wrap;
         }
 
         .header-content {
           display: flex;
           align-items: center;
-          gap: 30px;
+          gap: 20px;
+          flex-wrap: wrap;
         }
 
         .app-header h1 {
           margin: 0;
-          font-size: 22px;
+          font-size: 20px;
           font-weight: 600;
         }
 
         .stats {
           display: flex;
-          gap: 20px;
+          gap: 15px;
         }
 
         .stat-item {
@@ -235,7 +261,7 @@ export default function App() {
         }
 
         .stat-value {
-          font-size: 18px;
+          font-size: 16px;
           font-weight: bold;
         }
 
@@ -245,18 +271,44 @@ export default function App() {
         }
 
         .download-btn {
-          background-color: rgba(255,255,255,0.2);
-          color: white;
-          padding: 6px 12px;
-          border-radius: 30px;
-          text-decoration: none;
-          font-weight: 500;
-          transition: all 0.3s ease;
+          background-color: #fff;
+          color: #2a5298;
+          padding: 6px 14px;
+          border-radius: 25px;
+          border: none;
+          cursor: pointer;
+          font-weight: 600;
+          transition: all 0.2s ease;
         }
 
         .download-btn:hover {
-          background-color: rgba(255,255,255,0.3);
-          transform: translateY(-2px);
+          background-color: #f0f0f0;
+        }
+
+        .main-content {
+          flex: 1;
+          display: flex;
+          flex-direction: row;
+          height: 100%;
+        }
+
+        .sidebar {
+          width: 320px;
+          padding: 12px;
+          border-right: 1px solid #ddd;
+          overflow-y: auto;
+        }
+
+        .map-container {
+          flex: 1;
+          position: relative;
+        }
+
+        .map-loading {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .update-toast {
@@ -264,11 +316,27 @@ export default function App() {
           bottom: 20px;
           left: 50%;
           transform: translateX(-50%);
-          background: rgba(0,128,0,0.8);
+          background: rgba(0,128,0,0.85);
           color: #fff;
           padding: 8px 16px;
           border-radius: 8px;
           z-index: 999;
+          font-size: 14px;
+        }
+
+        /* 📱 Mobile styles */
+        @media (max-width: 768px) {
+          .main-content {
+            flex-direction: column;
+          }
+          .sidebar {
+            width: 100%;
+            border-right: none;
+            border-bottom: 1px solid #ddd;
+          }
+          .map-container {
+            height: 60vh;
+          }
         }
       `}</style>
     </div>
