@@ -9,6 +9,16 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { io } from 'socket.io-client';
 
+// Utility: generate & persist unique device ID
+function getDeviceId() {
+  let id = localStorage.getItem("deviceId");
+  if (!id) {
+    id = "web-" + crypto.randomUUID();
+    localStorage.setItem("deviceId", id);
+  }
+  return id;
+}
+
 // Custom Icons
 const ownIcon = new L.Icon({
   iconUrl: '/icons/pin.png',
@@ -17,7 +27,7 @@ const ownIcon = new L.Icon({
 });
 
 const otherIcon = new L.Icon({
-  iconUrl: '/icons/location-pin.png', // example red marker
+  iconUrl: '/icons/location-pin.png', // red marker
   iconSize: [28, 28],
   iconAnchor: [14, 28],
 });
@@ -49,7 +59,6 @@ export default function App() {
   const pos = useGeolocation(scanning, 30000);
   const { adverts } = useBluetoothScanner(scanning);
 
-  // PWA install prompt
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [installable, setInstallable] = useState(false);
 
@@ -98,7 +107,7 @@ export default function App() {
     if (!pos) return;
     const uploadOwnEvent = async () => {
       const ownEvent = {
-        deviceId: 'web-' + (navigator.userAgent || '').slice(0, 30),
+        deviceId: getDeviceId(), // ✅ persistent unique ID
         ts: pos.ts,
         lat: pos.lat,
         lon: pos.lon,
@@ -129,7 +138,7 @@ export default function App() {
           lon: parseFloat(a.lon),
           rssi: a.rssi,
           sourceDeviceId: a.sourceDeviceId,
-          uploaderDeviceId: 'web-relay',
+          uploaderDeviceId: getDeviceId(), // ✅ tag relays with unique ID
           relayed: true,
         };
         setDevices(d => ({ ...d, [ev.deviceId]: ev }));
@@ -140,7 +149,7 @@ export default function App() {
     handleAdverts();
   }, [adverts]);
 
-  const ownDevice = Object.values(devices).find(d => !d.relayed);
+  const ownDevice = Object.values(devices).find(d => !d.relayed && d.deviceId === getDeviceId());
   const totalDevices = Object.keys(devices).length;
   const onlineDevices = Object.values(devices).filter(d => d.lat && d.lon).length;
 
@@ -255,12 +264,18 @@ export default function App() {
               {Object.values(devices).map(d => (
                 <div 
                   key={d.deviceId} 
-                  className={`p-3 rounded-lg border ${d.relayed ? 'bg-blue-50 border-blue-200' : 'bg-indigo-50 border-indigo-200'}`}
+                  className={`p-3 rounded-lg border ${d.relayed ? 'bg-blue-50 border-blue-200' : (d.deviceId === getDeviceId() ? 'bg-indigo-50 border-indigo-200' : 'bg-red-50 border-red-200')}`}
                 >
                   <div className="flex justify-between items-start">
                     <div className="font-medium truncate max-w-[70%]">{d.deviceId}</div>
-                    <span className={`text-xs px-2 py-1 rounded-full ${d.relayed ? 'bg-blue-100 text-blue-800' : 'bg-indigo-100 text-indigo-800'}`}>
-                      {d.relayed ? 'Relayed' : 'Me'}
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      d.relayed 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : (d.deviceId === getDeviceId() 
+                            ? 'bg-indigo-100 text-indigo-800' 
+                            : 'bg-red-100 text-red-800')
+                    }`}>
+                      {d.relayed ? 'Relayed' : (d.deviceId === getDeviceId() ? 'Me' : 'Other')}
                     </span>
                   </div>
                   {d.lat && (
@@ -286,6 +301,7 @@ export default function App() {
               className="w-full h-full"
             >
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              {/* Own device */}
               <Marker position={[ownDevice.lat, ownDevice.lon]} icon={ownIcon}>
                 <Popup>
                   <div className="font-semibold">Your Location</div>
@@ -293,6 +309,8 @@ export default function App() {
                 </Popup>
               </Marker>
               <RecenterMap lat={ownDevice.lat} lon={ownDevice.lon} />
+
+              {/* Relayed devices */}
               {Object.values(devices)
                 .filter(d => d.relayed)
                 .map(d => (
@@ -303,17 +321,19 @@ export default function App() {
                       <div className="text-sm text-gray-600">via {d.uploaderDeviceId}</div>
                     </Popup>
                   </Marker>
-                ))}
-                {Object.values(devices)
-  .filter(d => d.deviceId !== ownDevice.deviceId && !d.relayed) // other devices
-  .map(d => (
-    <Marker key={d.deviceId} position={[d.lat, d.lon]} icon={otherIcon}>
-      <Popup>
-        <div className="font-semibold">{d.deviceId}</div>
-        <div>{new Date(d.ts).toLocaleString()}</div>
-      </Popup>
-    </Marker>
-))}
+              ))}
+
+              {/* Other devices */}
+              {Object.values(devices)
+                .filter(d => d.deviceId !== getDeviceId() && !d.relayed)
+                .map(d => (
+                  <Marker key={d.deviceId} position={[d.lat, d.lon]} icon={otherIcon}>
+                    <Popup>
+                      <div className="font-semibold">{d.deviceId}</div>
+                      <div>{new Date(d.ts).toLocaleString()}</div>
+                    </Popup>
+                  </Marker>
+              ))}
             </MapContainer>
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gray-100">
