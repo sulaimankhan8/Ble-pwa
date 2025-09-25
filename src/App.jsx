@@ -188,7 +188,7 @@ export default function App() {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <div className="w-full md:w-80 bg-white shadow-md p-4 overflow-y-auto flex-shrink-0 max-h-screen md:h-1/2">
+        <div className="w-full md:w-80 bg-white shadow-md p-4 overflow-y-auto flex-shrink-0 max-h-screen ">
           <div className="mb-6">
             <button 
               onClick={() => setScanning(s => !s)}
