@@ -48,12 +48,13 @@ export default function App() {
   const [installable, setInstallable] = useState(false);
 
   useEffect(() => {
-    window.addEventListener("beforeinstallprompt", (e) => {
+    const handler = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
       setInstallable(true);
-    });
-    return () => window.removeEventListener("beforeinstallprompt", () => {});
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
   const handleInstallClick = async () => {
@@ -113,21 +114,23 @@ export default function App() {
   useEffect(() => {
     if (!adverts || adverts.length === 0) return;
     const handleAdverts = async () => {
-      for (const a of adverts) {
-        if (!a.lat || !a.lon) continue;
-        const ev = {
-          deviceId: a.id || `adv-${a.sourceDeviceId}`,
-          ts: a.ts || new Date().toISOString(),
-          lat: parseFloat(a.lat),
-          lon: parseFloat(a.lon),
-          rssi: a.rssi,
-          sourceDeviceId: a.sourceDeviceId,
-          uploaderDeviceId: 'web-relay',
-          relayed: true,
-        };
-        setDevices(d => ({ ...d, [ev.deviceId]: ev }));
-        await uploadEvent(ev);
-      }
+      await Promise.all(
+        adverts.map(async (a) => {
+          if (!a.lat || !a.lon) return;
+          const ev = {
+            deviceId: a.id || `adv-${a.sourceDeviceId}`,
+            ts: a.ts || new Date().toISOString(),
+            lat: parseFloat(a.lat),
+            lon: parseFloat(a.lon),
+            rssi: a.rssi,
+            sourceDeviceId: a.sourceDeviceId,
+            uploaderDeviceId: 'web-relay',
+            relayed: true,
+          };
+          setDevices(d => ({ ...d, [ev.deviceId]: ev }));
+          await uploadEvent(ev);
+        })
+      );
       await uploadBatchIfAny();
     };
     handleAdverts();
@@ -138,9 +141,9 @@ export default function App() {
   const onlineDevices = Object.values(devices).filter(d => d.lat && d.lon).length;
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans overflow-hidden">
       {/* Header */}
-      <header className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 shadow-lg z-10">
+      <header className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 shadow-lg z-10 flex-shrink-0">
         <div className="container mx-auto flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center mb-4 md:mb-0">
             <div className="bg-white p-2 rounded-lg mr-3">
@@ -179,9 +182,9 @@ export default function App() {
       </header>
 
       {/* Main Content */}
-      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <div className="w-full md:w-80 bg-white shadow-md p-4 overflow-y-auto">
+        <div className="w-full md:w-80 bg-white shadow-md p-4 overflow-y-auto flex-shrink-0">
           <div className="mb-6">
             <button 
               onClick={() => setScanning(s => !s)}
@@ -240,7 +243,7 @@ export default function App() {
               </svg>
               Discovered Devices
             </h3>
-            <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
               {Object.values(devices).map(d => (
                 <div 
                   key={d.deviceId} 
@@ -267,7 +270,7 @@ export default function App() {
         </div>
 
         {/* Map */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative overflow-hidden">
           {ownDevice ? (
             <MapContainer 
               center={[ownDevice.lat, ownDevice.lon]} 
