@@ -138,54 +138,147 @@ export default function App() {
   const onlineDevices = Object.values(devices).filter(d => d.lat && d.lon).length;
 
   return (
-    <div className="app-container">
-      <header className="app-header">
-        <div className="header-content">
-          <h1>BLE PWA Relay</h1>
-          <div className="stats">
-            <div className="stat-item">
-              <span className="stat-value">{totalDevices}</span>
-              <span className="stat-label">Total Devices</span>
+    <div className="flex flex-col h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans">
+      {/* Header */}
+      <header className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 shadow-lg z-10">
+        <div className="container mx-auto flex flex-col md:flex-row justify-between items-center">
+          <div className="flex items-center mb-4 md:mb-0">
+            <div className="bg-white p-2 rounded-lg mr-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
             </div>
-            <div className="stat-item">
-              <span className="stat-value">{onlineDevices}</span>
-              <span className="stat-label">Online</span>
+            <h1 className="text-2xl font-bold">BLE PWA Relay</h1>
+          </div>
+          
+          <div className="flex items-center space-x-6">
+            <div className="flex items-center bg-indigo-500 bg-opacity-30 px-4 py-2 rounded-lg">
+              <div className="text-center mr-4">
+                <div className="text-2xl font-bold">{totalDevices}</div>
+                <div className="text-xs opacity-80">Total Devices</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold">{onlineDevices}</div>
+                <div className="text-xs opacity-80">Online</div>
+              </div>
+            </div>
+            
+            {installable && (
+              <button 
+                onClick={handleInstallClick}
+                className="bg-white text-indigo-600 px-4 py-2 rounded-lg font-semibold flex items-center hover:bg-gray-100 transition-all duration-200 shadow-md"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Install App
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <div className="w-full md:w-80 bg-white shadow-md p-4 overflow-y-auto">
+          <div className="mb-6">
+            <button 
+              onClick={() => setScanning(s => !s)}
+              className={`w-full py-3 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center ${
+                scanning 
+                  ? 'bg-red-500 hover:bg-red-600 text-white' 
+                  : 'bg-green-500 hover:bg-green-600 text-white'
+              }`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                {scanning ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                )}
+              </svg>
+              {scanning ? 'Stop Scanning' : 'Start Scanning'}
+            </button>
+          </div>
+          
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <div className="flex items-center mb-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <h3 className="font-semibold text-gray-700">Location</h3>
+            </div>
+            <p className="text-gray-600">
+              {pos ? `${pos.lat.toFixed(5)}, ${pos.lon.toFixed(5)}` : 'No location fix yet'}
+            </p>
+          </div>
+          
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <div className="flex items-center mb-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 className="font-semibold text-gray-700">Next Update</h3>
+            </div>
+            <div className="flex items-center">
+              <div className="w-full bg-gray-200 rounded-full h-2.5 mr-3">
+                <div 
+                  className="bg-indigo-600 h-2.5 rounded-full" 
+                  style={{ width: `${(timer / 30) * 100}%` }}
+                ></div>
+              </div>
+              <span className="text-sm font-medium text-gray-700">{timer}s</span>
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold text-gray-700 mb-3 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              </svg>
+              Discovered Devices
+            </h3>
+            <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+              {Object.values(devices).map(d => (
+                <div 
+                  key={d.deviceId} 
+                  className={`p-3 rounded-lg border ${d.relayed ? 'bg-blue-50 border-blue-200' : 'bg-indigo-50 border-indigo-200'}`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="font-medium truncate max-w-[70%]">{d.deviceId}</div>
+                    <span className={`text-xs px-2 py-1 rounded-full ${d.relayed ? 'bg-blue-100 text-blue-800' : 'bg-indigo-100 text-indigo-800'}`}>
+                      {d.relayed ? 'Relayed' : 'Me'}
+                    </span>
+                  </div>
+                  {d.lat && (
+                    <div className="text-sm text-gray-600 mt-1">
+                      {d.lat.toFixed(5)}, {d.lon.toFixed(5)}
+                    </div>
+                  )}
+                  <div className="text-xs text-gray-500 mt-1">
+                    {new Date(d.ts).toLocaleString()}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-        {installable && (
-          <button className="download-btn" onClick={handleInstallClick}>
-            📲 Install App
-          </button>
-        )}
-      </header>
-
-      <div className="main-content">
-        {/* Sidebar */}
-        <div className="sidebar">
-          <button onClick={() => setScanning(s => !s)}>{scanning ? 'Stop' : 'Start'} scanning</button>
-          <p>Geo: {pos ? `${pos.lat.toFixed(5)}, ${pos.lon.toFixed(5)}` : 'no fix yet'}</p>
-          <p>Next upload in: {timer}s</p>
-          <h4>Discovered Devices</h4>
-          <ul>
-            {Object.values(devices).map(d => (
-              <li key={d.deviceId}>
-                {d.deviceId} {d.lat ? `@ ${d.lat.toFixed(5)},${d.lon.toFixed(5)}` : ''} {d.relayed ? '(relayed)' : '(me)'}
-              </li>
-            ))}
-          </ul>
-        </div>
 
         {/* Map */}
-        <div className="map-container">
+        <div className="flex-1 relative">
           {ownDevice ? (
-            <MapContainer center={[ownDevice.lat, ownDevice.lon]} zoom={15} style={{ flex: 1, height: '100%' }}>
+            <MapContainer 
+              center={[ownDevice.lat, ownDevice.lon]} 
+              zoom={15} 
+              className="w-full h-full"
+            >
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               <Marker position={[ownDevice.lat, ownDevice.lon]} icon={ownIcon}>
                 <Popup>
-                  <b>Me</b>
-                  <br />
-                  {new Date(ownDevice.ts).toLocaleString()}
+                  <div className="font-semibold">Your Location</div>
+                  <div>{new Date(ownDevice.ts).toLocaleString()}</div>
                 </Popup>
               </Marker>
               <RecenterMap lat={ownDevice.lat} lon={ownDevice.lon} />
@@ -194,151 +287,35 @@ export default function App() {
                 .map(d => (
                   <Marker key={d.deviceId} position={[d.lat, d.lon]} icon={relayIcon}>
                     <Popup>
-                      <b>{d.deviceId}</b>
-                      <br />
-                      {new Date(d.ts).toLocaleString()}
-                      <br />
-                      via {d.uploaderDeviceId}
+                      <div className="font-semibold">{d.deviceId}</div>
+                      <div>{new Date(d.ts).toLocaleString()}</div>
+                      <div className="text-sm text-gray-600">via {d.uploaderDeviceId}</div>
                     </Popup>
                   </Marker>
                 ))}
             </MapContainer>
           ) : (
-            <div className="map-loading">Loading map...</div>
+            <div className="w-full h-full flex items-center justify-center bg-gray-100">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading map...</p>
+              </div>
+            </div>
           )}
         </div>
       </div>
 
+      {/* Update Toast */}
       {lastUpdate && (
-        <div className="update-toast">
-          Location updated at {lastUpdate.toLocaleTimeString()}
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-20 animate-fade-in">
+          <div className="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            Location updated at {lastUpdate.toLocaleTimeString()}
+          </div>
         </div>
       )}
-
-      <style jsx>{`
-        .app-container {
-          height: 100vh;
-          width: 100vw;
-          display: flex;
-          flex-direction: column;
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .app-header {
-          background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-          color: white;
-          padding: 12px 20px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-          z-index: 1000;
-          flex-wrap: wrap;
-        }
-
-        .header-content {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-          flex-wrap: wrap;
-        }
-
-        .app-header h1 {
-          margin: 0;
-          font-size: 20px;
-          font-weight: 600;
-        }
-
-        .stats {
-          display: flex;
-          gap: 15px;
-        }
-
-        .stat-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-
-        .stat-value {
-          font-size: 16px;
-          font-weight: bold;
-        }
-
-        .stat-label {
-          font-size: 12px;
-          opacity: 0.8;
-        }
-
-        .download-btn {
-          background-color: #fff;
-          color: #2a5298;
-          padding: 6px 14px;
-          border-radius: 25px;
-          border: none;
-          cursor: pointer;
-          font-weight: 600;
-          transition: all 0.2s ease;
-        }
-
-        .download-btn:hover {
-          background-color: #f0f0f0;
-        }
-
-        .main-content {
-          flex: 1;
-          display: flex;
-          flex-direction: row;
-          height: 100%;
-        }
-
-        .sidebar {
-          width: 320px;
-          padding: 12px;
-          border-right: 1px solid #ddd;
-          overflow-y: auto;
-        }
-
-        .map-container {
-          flex: 1;
-          position: relative;
-        }
-
-        .map-loading {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .update-toast {
-          position: absolute;
-          bottom: 20px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: rgba(0,128,0,0.85);
-          color: #fff;
-          padding: 8px 16px;
-          border-radius: 8px;
-          z-index: 999;
-          font-size: 14px;
-        }
-
-        /* 📱 Mobile styles */
-        @media (max-width: 768px) {
-          .main-content {
-            flex-direction: column;
-          }
-          .sidebar {
-            width: 100%;
-            border-right: none;
-            border-bottom: 1px solid #ddd;
-          }
-          .map-container {
-            height: 60vh;
-          }
-        }
-      `}</style>
     </div>
   );
 }
