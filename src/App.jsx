@@ -11,9 +11,15 @@ import { io } from 'socket.io-client';
 
 // Custom Icons
 const ownIcon = new L.Icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/447/447031.png',
+  iconUrl: '/icons/pin.png',
   iconSize: [30, 30],
   iconAnchor: [15, 30],
+});
+
+const otherIcon = new L.Icon({
+  iconUrl: '/icons/location-pin.png', // example red marker
+  iconSize: [28, 28],
+  iconAnchor: [14, 28],
 });
 
 const relayIcon = new L.Icon({
@@ -298,6 +304,16 @@ export default function App() {
                     </Popup>
                   </Marker>
                 ))}
+                {Object.values(devices)
+  .filter(d => d.deviceId !== ownDevice.deviceId && !d.relayed) // other devices
+  .map(d => (
+    <Marker key={d.deviceId} position={[d.lat, d.lon]} icon={otherIcon}>
+      <Popup>
+        <div className="font-semibold">{d.deviceId}</div>
+        <div>{new Date(d.ts).toLocaleString()}</div>
+      </Popup>
+    </Marker>
+))}
             </MapContainer>
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gray-100">
