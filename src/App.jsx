@@ -48,12 +48,13 @@ export default function App() {
   const [installable, setInstallable] = useState(false);
 
   useEffect(() => {
-    window.addEventListener("beforeinstallprompt", (e) => {
+    const handler = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
       setInstallable(true);
-    });
-    return () => window.removeEventListener("beforeinstallprompt", () => {});
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
   const handleInstallClick = async () => {
@@ -138,7 +139,7 @@ export default function App() {
   const onlineDevices = Object.values(devices).filter(d => d.lat && d.lon).length;
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans overflow-hidden">
       {/* Header */}
       <header className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 shadow-lg z-10">
         <div className="container mx-auto flex flex-col md:flex-row justify-between items-center">
@@ -179,9 +180,10 @@ export default function App() {
       </header>
 
       {/* Main Content */}
-      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col md:flex-row overflow-hidden">
         {/* Sidebar */}
-        <div className="w-full md:w-80 bg-white shadow-md p-4 overflow-y-auto">
+        <div className="w-full md:w-80 bg-white shadow-md p-4 overflow-y-auto" style={{ minHeight: '0' }}>
+          {/* Scan Button */}
           <div className="mb-6">
             <button 
               onClick={() => setScanning(s => !s)}
@@ -201,7 +203,8 @@ export default function App() {
               {scanning ? 'Stop Scanning' : 'Start Scanning'}
             </button>
           </div>
-          
+
+          {/* Location */}
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <div className="flex items-center mb-3">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -214,7 +217,8 @@ export default function App() {
               {pos ? `${pos.lat.toFixed(5)}, ${pos.lon.toFixed(5)}` : 'No location fix yet'}
             </p>
           </div>
-          
+
+          {/* Next Update */}
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <div className="flex items-center mb-3">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -232,7 +236,8 @@ export default function App() {
               <span className="text-sm font-medium text-gray-700">{timer}s</span>
             </div>
           </div>
-          
+
+          {/* Devices */}
           <div>
             <h3 className="font-semibold text-gray-700 mb-3 flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -240,7 +245,7 @@ export default function App() {
               </svg>
               Discovered Devices
             </h3>
-            <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+            <div className="space-y-3 max-h-[calc(100vh-400px)] overflow-y-auto pr-2">
               {Object.values(devices).map(d => (
                 <div 
                   key={d.deviceId} 
@@ -267,7 +272,7 @@ export default function App() {
         </div>
 
         {/* Map */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-h-[300px]">
           {ownDevice ? (
             <MapContainer 
               center={[ownDevice.lat, ownDevice.lon]} 
