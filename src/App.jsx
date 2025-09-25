@@ -8,6 +8,7 @@ import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { io } from 'socket.io-client';
+import { useRegisterSW } from 'virtual:pwa-register/react';
 
 // Custom Icons
 const ownIcon = new L.Icon({
@@ -65,6 +66,9 @@ export default function App() {
     setDeferredPrompt(null);
     setInstallable(false);
   };
+
+  // 🔄 Service Worker Update handling
+  const { needRefresh, updateServiceWorker } = useRegisterSW();
 
   useEffect(() => setScanning(true), []);
 
@@ -141,7 +145,7 @@ export default function App() {
   const onlineDevices = Object.values(devices).filter(d => d.lat && d.lon).length;
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans overflow-hidden">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans">
       {/* Header */}
       <header className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 shadow-lg z-10 flex-shrink-0">
         <div className="container mx-auto flex flex-col md:flex-row justify-between items-center">
@@ -184,7 +188,7 @@ export default function App() {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <div className="w-full md:w-80 bg-white shadow-md p-4 overflow-y-auto flex-shrink-0">
+        <div className="w-full md:w-80 bg-white shadow-md p-4 overflow-y-auto flex-shrink-0 max-h-screen md:h-1/2">
           <div className="mb-6">
             <button 
               onClick={() => setScanning(s => !s)}
@@ -316,6 +320,21 @@ export default function App() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
             Location updated at {lastUpdate.toLocaleTimeString()}
+          </div>
+        </div>
+      )}
+
+      {/* PWA Update Toast */}
+      {needRefresh && (
+        <div className="fixed bottom-16 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-white px-4 py-2 rounded-lg shadow-lg z-20 animate-fade-in">
+          <div className="flex items-center space-x-3">
+            <span>A new version is available</span>
+            <button
+              onClick={() => updateServiceWorker(true)}
+              className="bg-white text-yellow-700 px-3 py-1 rounded font-semibold"
+            >
+              Update now
+            </button>
           </div>
         </div>
       )}
